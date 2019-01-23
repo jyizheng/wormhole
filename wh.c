@@ -43,42 +43,6 @@ typedef atomic_int_least64_t    as64;
 
 // locking {{{
   inline void
-qspinlock_init(qspinlock * const lock)
-{
-  lock->next = NULL;
-  lock->pending = 0u;
-}
-
-  inline void
-qspinlock_lock(qspinlock * const lock, qspinlock * const priv)
-{
-  priv->next = NULL;
-  priv->pending = 1u;
-  qspinlock * const pred = (typeof(pred))atomic_exchange((au64 *)&(lock->next), (u64)priv);
-
-  if (pred) {
-    pred->next = priv;
-    cpu_cfence();
-    do {
-      _mm_pause();
-    } while (priv->pending);
-  }
-}
-
-  inline void
-qspinlock_unlock(qspinlock * const lock, qspinlock * const priv)
-{
-  while (NULL == priv->next) {
-    u64 me = (u64)priv;
-    if (atomic_compare_exchange_weak((au64 *)&(lock->next), &me, 0lu))
-      return;
-    _mm_pause();
-  }
-  cpu_cfence();
-  priv->next->pending = 0;
-}
-
-  inline void
 spinlock_init(spinlock * const lock)
 {
   lock->var = 0u;
@@ -1549,7 +1513,7 @@ struct wormleaf {
   u64 version;
   u32 klen;
   u32 padding0;
-  u64 padding1[2];
+  u64 padding1;
   // second line
   rwlock leaflock;
   struct kv_entry eh[WORMHOLE_KPN]; // sorted by hashes
@@ -1587,6 +1551,7 @@ struct wormhole {
   struct wormhmap hmap2[2];
   // fifth line
   rwlock metalock;
+  u64 padding1[7];
 };
 
 struct wormhole_iter {

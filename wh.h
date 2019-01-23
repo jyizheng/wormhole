@@ -46,25 +46,6 @@ typedef uint_least64_t          u64;
 // }}} types
 
 // locks {{{
-typedef struct __qspinlock {
-  union {
-    struct {
-      struct __qspinlock * next;
-      u16 pending;
-    };
-    u64 padding[8];
-  };
-} qspinlock;
-
-  extern void
-qspinlock_init(qspinlock * const lock);
-
-  extern void
-qspinlock_lock(qspinlock * const lock, qspinlock * const priv);
-
-  extern void
-qspinlock_unlock(qspinlock * const lock, qspinlock * const priv);
-
 typedef struct __spinlock {
   union {
     u16 var;
@@ -106,7 +87,7 @@ mutexlock_unlock(mutexlock * const lock);
 typedef struct __rwlock {
   union {
     u16 var;
-    u64 padding[8];
+    u64 padding;
   };
 } rwlock;
 
