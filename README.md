@@ -8,14 +8,14 @@ The implementation has been well tuned on Xeon E5-26xx v4 CPUs with many _pre-ma
 # Build
 
 The project was developed on a 64-bit Linux OS.
-Some Linux-specific APIs are used (e.g., mmap) so porting to MacOS/Windows may take some effort.
+Some Linux-specific APIs are used (e.g., `mmap`) so porting to MacOS/Windows may take some effort.
 Clang is the default compiler. It can be changed to gcc in Makefile.common (CCC).
 
 To build:
 
     $ make
 
-Alternatively, you may use `O=0g` to enable debug info and disable optimizaions:
+Alternatively, you may use `O=0g` to enable debug info and disable optimization:
 
     $ O=0g make
 
@@ -32,17 +32,17 @@ Each line of the input becomes a key in the index. duplicates are allowed in the
 ## `struct kv`
 
 Please refer to demo1.c for quick examples of how to manipulate the *key-value* objects (`struct kv`).
-the `struct kv` is also used to represent a *key*, where the value portion is simply ignored.
+The `struct kv` is also used to represent a *key*, where the value portion is simply ignored.
 There are a handful of helper functions (kv\_\* functions) provided in wh.c.
 
 It's worth noting that the *key's hash* in a `struct kv` must be up-to-date before the key in the
-`struct kv` object is read by wormhole functions.
+`struct kv` object is used by wormhole functions.
 The `kv_refill*` helper functions internally update the hash.
 In a more general case, `kv_update_hash` can be used to update the key's hash.
 
 ## The Wormhole API
 
-the Wormhole functions are listed near the bottom of wh.h (see the wormhole\_\* functions).
+The Wormhole functions are listed near the bottom of wh.h (see the wormhole\_\* functions).
 It's recommended to use demo1.c as an example to get started.
 
 The default index operations (get, set, del, probe, and scan (wormhole\_iter\_\* functions)) are *thread safe*.
@@ -63,15 +63,19 @@ The thread-unsafe functions don't use the the reference (_wormref_). Simply feed
     // other unsafe operations
     wormhole_destroy(index);
 
+Wormhole internally uses QSBR RCU to synchronize readers/writers so every holder of a `ref`
+needs actively perform index operations. Otherwise, the holder may temporarily release the `ref`
+before entering an idle/sleep status.
+
 ## Memory management
 
-Wormhole manages all the key-value data internally and only copy to or from an user-supplied
-buffer (`struct kv`).
-This draws a clear boundary in the memory space between the Wormhole index and its users.
+Wormhole manages all the key-value data internally and only copies to or from a user-supplied
+buffer (a `struct kv` object).
+This draws a clear boundary in the memory space between the index structure and its users.
 After a call to any of the index operations, the caller can immediately free
 the buffer holding the key or the key-value data.
-This also allows users to use key-values allocated on the stack when interacting with Wormhole.
+This also allows users to use stack-allocated `struct kv` objects to interact with Wormhole.
 
-The memory allocator for the internal key-value data can be customized when wormhole is created/initialized (see `wormhole_create`).
-The allocator will _only_ be used for allocating the internal key-value data (`struct kv`),
+The memory allocator for the internal key-value data can be customized when the index is created/initialized (see `wormhole_create`).
+The allocator will _only_ be used for allocating the internal key-value data (the `struct kv` objects),
 but not the other objects in Wormhole, such as hash table and tree nodes.
