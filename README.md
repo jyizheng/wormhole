@@ -63,9 +63,10 @@ The thread-unsafe functions don't use the the reference (_wormref_). Simply feed
     // other unsafe operations
     wormhole_destroy(index);
 
-Wormhole internally uses QSBR RCU to synchronize readers/writers so every holder of a `ref`
-needs actively perform index operations. Otherwise, the holder may temporarily release the `ref`
-before entering an idle/sleep status.
+Wormhole internally uses QSBR RCU to synchronize readers/writers so every holder of a reference (`ref`)
+needs to actively perform index operations.
+An inactive reference holder can block writer threads because of not periodically announcing its quiescent state.
+It is recommended that a holder temporarily releases the `ref` if it's about to enter some idle/sleep status.
 
 ## Memory management
 
